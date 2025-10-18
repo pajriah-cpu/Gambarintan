@@ -7,35 +7,33 @@ from PIL import Image
 import cv2
 
 # ==========================
-# KONFIGURASI DASHBOARD (WARNA BIRU)
+# KONFIGURASI DASHBOARD (WARNA BIRU SOFT)
 # ==========================
 st.set_page_config(page_title="Image Detection & Classification", page_icon="🧠", layout="centered")
 
-# Tambahkan CSS biru di sini ⬇️
+# CSS dengan warna biru lembut
 page_style = """
 <style>
-/* ======== LATAR BELAKANG BIRU ======== */
+/* ======== LATAR BELAKANG BIRU LEMBUT ======== */
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #007BFF 0%, #004AAD 100%);
+    background: linear-gradient(135deg, #66B2FF 0%, #0055CC 100%);
     color: white;
 }
 
 /* ======== SIDEBAR ======== */
 [data-testid="stSidebar"] {
-    background-color: #003580;
+    background-color: #468CE8 !important; /* biru lembut sidebar */
 }
 [data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* ======== PERBAIKAN INTERAKSI DROPDOWN & FILE UPLOADER ======== */
+/* ======== PERBAIKAN INTERAKSI ======== */
 div[data-baseweb="select"],
-.stFileUploader {
-    z-index: 1000 !important;
+.stFileUploader,
+.stButton {
     position: relative !important;
-}
-[data-testid="stSidebarNav"] {
-    z-index: 1 !important;
+    z-index: auto !important;
 }
 
 /* ======== HEADER DAN TEKS ======== */
@@ -99,7 +97,6 @@ if uploaded_file is not None:
         class_index = np.argmax(prediction)
         probability = np.max(prediction)
 
-        # ✅ Bagian f-string sudah ditutup dengan benar di bawah ini
         st.markdown(
             f"""
             <div class="result-card">
