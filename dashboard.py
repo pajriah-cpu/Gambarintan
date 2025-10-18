@@ -28,13 +28,14 @@ page_style = """
     color: white !important;
 }
 
-/* ======== FIX INTERAKSI (DROPDOWN BISA DIKLIK) ======== */
-.stSelectbox, .stButton, .stFileUploader, .stTextInput, .stSlider, .stRadio {
+/* ======== PERBAIKAN INTERAKSI DROPDOWN & FILE UPLOADER ======== */
+div[data-baseweb="select"],
+.stFileUploader {
+    z-index: 1000 !important;
     position: relative !important;
-    z-index: 9999 !important;
 }
-.stSelectbox [role="listbox"] {
-    z-index: 10000 !important;
+[data-testid="stSidebarNav"] {
+    z-index: 1 !important;
 }
 
 /* ======== HEADER DAN TEKS ======== */
@@ -103,8 +104,4 @@ if uploaded_file is not None:
             <div class="result-card">
                 <h2>🔹 Hasil Prediksi</h2>
                 <h3>Kelas: {class_index}</h3>
-                <p><b>Probabilitas:</b> {probability:.2f}</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                <p><b>Probabilitas:</b> {probability:.
