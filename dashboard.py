@@ -99,9 +99,14 @@ if uploaded_file is not None:
         class_index = np.argmax(prediction)
         probability = np.max(prediction)
 
+        # ✅ Bagian f-string sudah ditutup dengan benar di bawah ini
         st.markdown(
             f"""
             <div class="result-card">
                 <h2>🔹 Hasil Prediksi</h2>
                 <h3>Kelas: {class_index}</h3>
-                <p><b>Probabilitas:</b> {probability:.
+                <p><b>Probabilitas:</b> {probability:.2f}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
