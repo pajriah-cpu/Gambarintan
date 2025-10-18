@@ -20,6 +20,8 @@ yolo_model, classifier = load_models()
 # ==========================
 # UI
 # ==========================
+st.set_page_config(page_title="Image Classification & Detection", page_icon="🧠", layout="centered")
+
 st.title("🧠 Image Classification & Object Detection App")
 
 menu = st.sidebar.selectbox("Pilih Mode:", ["Deteksi Objek (YOLO)", "Klasifikasi Gambar"])
@@ -28,13 +30,13 @@ uploaded_file = st.file_uploader("Unggah Gambar", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
-    st.image(img, caption="Gambar yang Diupload", use_container_width=True)
+    st.image(img, caption="📸 Gambar yang Diupload", use_container_width=True)
 
     if menu == "Deteksi Objek (YOLO)":
         # Deteksi objek
         results = yolo_model(img)
         result_img = results[0].plot()  # hasil deteksi (gambar dengan box)
-        st.image(result_img, caption="Hasil Deteksi", use_container_width=True)
+        st.image(result_img, caption="📦 Hasil Deteksi", use_container_width=True)
 
     elif menu == "Klasifikasi Gambar":
         # Preprocessing
@@ -48,13 +50,36 @@ if uploaded_file is not None:
         class_index = np.argmax(prediction)
         probability = np.max(prediction)
 
-        # Tampilan hasil dengan warna biru (kartu info)
+        # ==========================
+        # Tampilan hasil prediksi (card biru elegan)
+        # ==========================
         st.markdown(
             f"""
-            <div style="background-color:#007BFF;padding:20px;border-radius:10px;">
-                <h3 style="color:white;text-align:center;">Hasil Prediksi</h3>
-                <h2 style="color:white;text-align:center;">Kelas: {class_index}</h2>
-                <p style="color:white;text-align:center;">Probabilitas: {probability:.2f}</p>
+            <style>
+            .result-card {{
+                background: linear-gradient(135deg, #007BFF 0%, #0056D2 100%);
+                color: white;
+                padding: 25px;
+                border-radius: 15px;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                margin-top: 25px;
+            }}
+            .result-title {{
+                font-size: 28px;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }}
+            .result-text {{
+                font-size: 20px;
+                margin-top: 5px;
+            }}
+            </style>
+
+            <div class="result-card">
+                <div class="result-title">🔹 Hasil Prediksi</div>
+                <div class="result-text">Kelas: <b>{class_index}</b></div>
+                <div class="result-text">Probabilitas: <b>{probability:.2f}</b></div>
             </div>
             """,
             unsafe_allow_html=True
