@@ -7,20 +7,20 @@ from PIL import Image
 import cv2
 
 # ==========================
-# CONFIGURASI DASHBOARD
+# KONFIGURASI DASHBOARD (WARNA BIRU)
 # ==========================
 st.set_page_config(page_title="Image Detection & Classification", page_icon="🧠", layout="centered")
 
-# Warna biru background untuk seluruh dashboard
+# Tambahkan CSS biru di sini ⬇️
 page_style = """
 <style>
-/* Background utama */
+/* ======== LATAR BELAKANG BIRU ======== */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #007BFF 0%, #004AAD 100%);
     color: white;
 }
 
-/* Sidebar */
+/* ======== SIDEBAR ======== */
 [data-testid="stSidebar"] {
     background-color: #003580;
 }
@@ -28,17 +28,24 @@ page_style = """
     color: white !important;
 }
 
-/* Header */
+/* ======== FIX INTERAKSI (DROPDOWN BISA DIKLIK) ======== */
+.stSelectbox, .stButton, .stFileUploader, .stTextInput, .stSlider, .stRadio {
+    position: relative !important;
+    z-index: 9999 !important;
+}
+.stSelectbox [role="listbox"] {
+    z-index: 10000 !important;
+}
+
+/* ======== HEADER DAN TEKS ======== */
 [data-testid="stHeader"] {
     background: rgba(0,0,0,0);
 }
-
-/* Teks umum */
 h1, h2, h3, p, label {
     color: white !important;
 }
 
-/* Kotak hasil prediksi */
+/* ======== KOTAK HASIL ======== */
 .result-card {
     background-color: white;
     color: #004AAD;
@@ -77,17 +84,11 @@ if uploaded_file is not None:
     st.image(img, caption="Gambar yang Diupload", use_container_width=True)
 
     if menu == "Deteksi Objek (YOLO)":
-        # ==========================
-        # DETEKSI OBJEK DENGAN YOLO
-        # ==========================
         results = yolo_model(img)
-        result_img = results[0].plot()  # hasil deteksi (gambar dengan bounding box)
+        result_img = results[0].plot()
         st.image(result_img, caption="📦 Hasil Deteksi", use_container_width=True)
 
     elif menu == "Klasifikasi Gambar":
-        # ==========================
-        # KLASIFIKASI GAMBAR
-        # ==========================
         img_resized = img.resize((224, 224))
         img_array = image.img_to_array(img_resized)
         img_array = np.expand_dims(img_array, axis=0)
@@ -97,9 +98,6 @@ if uploaded_file is not None:
         class_index = np.argmax(prediction)
         probability = np.max(prediction)
 
-        # ==========================
-        # TAMPILKAN HASIL DI KOTAK PUTIH
-        # ==========================
         st.markdown(
             f"""
             <div class="result-card">
