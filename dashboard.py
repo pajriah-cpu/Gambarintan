@@ -46,5 +46,16 @@ if uploaded_file is not None:
         # Prediksi
         prediction = classifier.predict(img_array)
         class_index = np.argmax(prediction)
-        st.write("### Hasil Prediksi:", class_index)
-        st.write("Probabilitas:", np.max(prediction))
+        probability = np.max(prediction)
+
+        # Tampilan hasil dengan warna biru (kartu info)
+        st.markdown(
+            f"""
+            <div style="background-color:#007BFF;padding:20px;border-radius:10px;">
+                <h3 style="color:white;text-align:center;">Hasil Prediksi</h3>
+                <h2 style="color:white;text-align:center;">Kelas: {class_index}</h2>
+                <p style="color:white;text-align:center;">Probabilitas: {probability:.2f}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
