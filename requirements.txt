@@ -5,3 +5,5 @@ torch
 torchvision
 ultralytics
 opencv-python-headless
+tensorflow-cpu
+keras
