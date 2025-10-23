@@ -31,7 +31,7 @@ st.markdown("""
     font-family: 'Poppins', sans-serif;
 }
 [data-testid="stSidebar"] {
-    background-color: #B4E3B1 !important;
+    background: linear-gradient(180deg, #B4E3B1 0%, #D7EAD3 100%) !important;
 }
 [data-testid="stSidebar"] * {
     color: #2E4031 !important;
@@ -123,4 +123,10 @@ if uploaded_file:
             with st.spinner("🔍 Sedang mendeteksi objek..."):
                 results = yolo_model(img)
                 result_image = results[0].plot()  # hasil gambar deteksi
-                st.image(result_image, caption="🟢 Hasil Deteksi Y_
+                st.image(result_image, caption="🟢 Hasil Deteksi YOLOv8", use_container_width=True)
+        elif not yolo_available:
+            st.error("❌ YOLOv8 belum terinstal. Jalankan: pip install ultralytics")
+        else:
+            st.warning("⚠️ Model YOLOv8 tidak dapat dimuat.")
+else:
+    st.info("📂 Silakan unggah gambar terlebih dahulu.")
