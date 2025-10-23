@@ -1,7 +1,13 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-from ultralytics import YOLO
+
+# Cek import YOLO dan cv2
+try:
+    from ultralytics import YOLO
+    import cv2
+except ImportError as e:
+    st.error(f"Module error: {e}")
 
 # --- Style Background ---
 st.markdown(
@@ -36,7 +42,7 @@ if uploaded_file:
     if mode == "Klasifikasi":
         st.subheader("Mode: Klasifikasi")
         st.info("🔹 Gambar akan diklasifikasikan secara otomatis.")
-        # Panggil model klasifikasi kamu di sini
+        # Placeholder untuk model klasifikasi
         st.image(image, caption="Hasil Klasifikasi", use_column_width=True)
         st.write("✅ Kelas yang terdeteksi: **Daun Mangga**")  # contoh
 
@@ -44,19 +50,17 @@ if uploaded_file:
         st.subheader("Mode: Deteksi YOLOv8")
         st.info("🔹 Gambar akan dideteksi menggunakan YOLOv8.")
 
-        # --- Load model YOLOv8 (misal model custom kamu) ---
-        model = YOLO("yolov8n.pt")  # ganti path ke modelmu, misal "runs/train/exp/weights/best.pt"
+        try:
+            # Load YOLOv8 model
+            model = YOLO("yolov8n.pt")  # ganti path sesuai modelmu
+            img_np = np.array(image)
+            results = model.predict(img_np)
+            result_img = results[0].plot()
+            st.image(result_img, caption="Hasil Deteksi YOLOv8", use_column_width=True)
 
-        # Convert PIL image ke numpy array
-        img_np = np.array(image)
+            # Tampilkan label
+            labels = [model.names[int(cls)] for cls in results[0].boxes.cls]
+            st.write(f"✅ Objek terdeteksi: {', '.join(labels)}")
 
-        # Jalankan deteksi
-        results = model.predict(img_np)
-
-        # Ambil hasil gambar dengan bounding box
-        result_img = results[0].plot()  # ini langsung menampilkan box + label
-        st.image(result_img, caption="Hasil Deteksi YOLOv8", use_column_width=True)
-
-        # Tampilkan label yang terdeteksi
-        labels = [model.names[int(cls)] for cls in results[0].boxes.cls]
-        st.write(f"✅ Objek terdeteksi: {', '.join(labels)}")
+        except Exception as e:
+            st.error(f"Gagal menjalankan YOLOv8: {e}")
