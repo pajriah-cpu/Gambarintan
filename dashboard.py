@@ -55,7 +55,7 @@ if uploaded_file:
             model = YOLO("yolov8n.pt")  # ganti path sesuai modelmu
             img_np = np.array(image)
             results = model.predict(img_np)
-            result_img = results[0].plot()
+            result_img = results[0].plot(show=False)
             st.image(result_img, caption="Hasil Deteksi YOLOv8", use_column_width=True)
 
             # Tampilkan label
