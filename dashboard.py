@@ -6,6 +6,19 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from PIL import Image
+import os
+import sys
+
+# ==========================
+# CEK DAN INSTALL LIBRARY SISTEM JIKA BELUM ADA
+# ==========================
+try:
+    import cv2
+except Exception:
+    with st.spinner("🔧 Menginstal dependensi sistem (libGL dan glib)..."):
+        os.system("apt-get update -y && apt-get install -y libgl1 libglib2.0-0")
+    st.success("✅ Dependensi sistem berhasil diinstal. Silakan jalankan ulang aplikasi.")
+    st.stop()
 
 # ==========================
 # IMPORT YOLO DAN OPENCV (dengan penanganan error)
@@ -15,7 +28,7 @@ try:
     import cv2
 except Exception as e:
     st.error("❌ Gagal memuat library YOLO/OpenCV.")
-    st.info("Tambahkan file packages.txt berisi:\n- libgl1\n- libglib2.0-0")
+    st.info("Jika error berlanjut, pastikan packages berikut sudah terinstal:\n- libgl1\n- libglib2.0-0")
     st.error(f"Detail error: {e}")
     st.stop()
 
