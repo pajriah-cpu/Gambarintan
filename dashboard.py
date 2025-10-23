@@ -9,26 +9,19 @@ from PIL import Image
 import os
 
 # ==========================
-# CEK DAN INSTALL LIBRARY SISTEM JIKA BELUM ADA
+# CEK DAN IMPOR OPENCV + YOLO
 # ==========================
 try:
     import cv2
-except Exception:
-    with st.spinner("🔧 Menginstal dependensi sistem (libGL dan glib)..."):
-        os.system("apt-get update -y && apt-get install -y libgl1 libglib2.0-0")
-    st.success("✅ Dependensi sistem berhasil diinstal. Aplikasi akan dimuat ulang otomatis...")
-    st.rerun()   # Pengganti st.experimental_rerun()
-
-# ==========================
-# IMPORT YOLO DAN OPENCV
-# ==========================
-try:
     from ultralytics import YOLO
-    import cv2
-except Exception as e:
-    st.error("❌ Gagal memuat library YOLO/OpenCV.")
-    st.info("Pastikan packages berikut sudah terinstal:\n- libgl1\n- libglib2.0-0")
-    st.error(f"Detail error: {e}")
+except ImportError as e:
+    st.error("❌ Library 'opencv-python' atau 'ultralytics' belum terinstal.")
+    st.info("""
+    Jalankan perintah berikut di terminal atau file requirements.txt:
+    ```
+    pip install opencv-python ultralytics tensorflow pillow numpy streamlit
+    ```
+    """)
     st.stop()
 
 # ==========================
@@ -71,21 +64,22 @@ h1, h2, h3, p, label, span {
 """, unsafe_allow_html=True)
 
 # ==========================
-# LOAD MODEL (CACHED)
+# LOAD MODEL (DENGAN CACHE)
 # ==========================
 @st.cache_resource
 def load_models():
+    """Memuat model YOLO dan klasifikasi dengan caching"""
+    yolo_model, classifier = None, None
+
     try:
         yolo_model = YOLO("model/best.pt")
     except Exception as e:
-        st.error(f"⚠️ Gagal memuat model YOLOv8: {e}")
-        yolo_model = None
+        st.warning(f"⚠️ Model YOLOv8 tidak ditemukan atau gagal dimuat.\n{e}")
 
     try:
         classifier = tf.keras.models.load_model("model/classifier_model.h5")
     except Exception as e:
-        st.error(f"⚠️ Gagal memuat model klasifikasi: {e}")
-        classifier = None
+        st.warning(f"⚠️ Model klasifikasi tidak ditemukan atau gagal dimuat.\n{e}")
 
     return yolo_model, classifier
 
@@ -117,9 +111,15 @@ with col2:
                 with st.spinner("🔍 Sedang mendeteksi objek..."):
                     results = yolo_model(img)
                     result_img = results[0].plot()
-                st.image(result_img, caption="📦 Hasil Deteksi YOLOv8", use_container_width=True)
+                    st.image(result_img, caption="📦 Hasil Deteksi YOLOv8", use_container_width=True)
+
+                    # Statistik tambahan
+                    detected_classes = [yolo_model.names[int(c)] for c in results[0].boxes.cls]
+                    st.markdown(f"**Jumlah objek terdeteksi:** {len(detected_classes)}")
+                    if len(detected_classes) > 0:
+                        st.markdown(f"**Kelas objek:** {', '.join(detected_classes)}")
             else:
-                st.warning("⚠️ Model YOLOv8 belum dimuat.")
+                st.warning("⚠️ Model YOLOv8 belum dimuat. Pastikan file `model/best.pt` ada di folder `model/`.")
 
         # ==========================
         # MODE 2: KLASIFIKASI GAMBAR
@@ -132,8 +132,8 @@ with col2:
                     img_array = np.expand_dims(img_array, axis=0) / 255.0
 
                     prediction = classifier.predict(img_array)
-                    class_index = np.argmax(prediction)
-                    probability = np.max(prediction)
+                    class_index = int(np.argmax(prediction))
+                    probability = float(np.max(prediction))
 
                 st.markdown(f"""
                     <div class="result-card">
@@ -143,6 +143,6 @@ with col2:
                     </div>
                 """, unsafe_allow_html=True)
             else:
-                st.warning("⚠️ Model klasifikasi belum dimuat.")
+                st.warning("⚠️ Model klasifikasi belum dimuat. Pastikan `classifier_model.h5` ada di folder `model/`.")
     else:
         st.info("📂 Silakan unggah gambar terlebih dahulu untuk memulai deteksi atau klasifikasi.")
