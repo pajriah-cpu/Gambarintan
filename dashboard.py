@@ -1,27 +1,21 @@
 # ==========================
-# IMPORT LIBRARY
+# DASHBOARD SMART IMAGE INSIGHT
 # ==========================
+
 import streamlit as st
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.preprocessing import image
+import pandas as pd
+import matplotlib.pyplot as plt
 from PIL import Image
-import os
-
-# Coba load YOLOv8
-try:
-    from ultralytics import YOLO
-    yolo_available = True
-except:
-    yolo_available = False
+from ultralytics import YOLO
 
 # ==========================
 # KONFIGURASI DASAR
 # ==========================
-st.set_page_config(page_title="🌸 Image Detection & Classification", layout="centered")
+st.set_page_config(page_title="🌸 Smart Image Insight Dashboard", layout="wide")
 
 # ==========================
-# TEMA WARNA FEMININ HIJAU PASTEL
+# TEMA STYLING FEMININ
 # ==========================
 st.markdown("""
 <style>
@@ -30,103 +24,109 @@ st.markdown("""
     color: #2E4031;
     font-family: 'Poppins', sans-serif;
 }
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #B4E3B1 0%, #D7EAD3 100%) !important;
-}
-[data-testid="stSidebar"] * {
-    color: #2E4031 !important;
-}
 h1, h2, h3, p, label {
     color: #2E4031 !important;
 }
-.result-card {
+.result-box {
     background-color: white;
     color: #2E4031;
-    padding: 25px;
-    border-radius: 15px;
+    border-radius: 20px;
+    padding: 20px;
     text-align: center;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-    margin-top: 25px;
-}
-/* Tombol Upload Cantik */
-[data-testid="stFileUploader"] div[role="button"] {
-    background-color: #ffffff !important;
-    color: #3C6E47 !important;
-    font-weight: 600;
-    border-radius: 10px;
-    border: 2px solid #3C6E47;
-    transition: 0.3s;
-}
-[data-testid="stFileUploader"] div[role="button"]:hover {
-    background-color: #3C6E47 !important;
-    color: white !important;
+    box-shadow: 0px 6px 15px rgba(0,0,0,0.1);
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================
-# LOAD MODEL
+# LOAD MODEL YOLOv8
 # ==========================
 @st.cache_resource
-def load_models():
-    try:
-        classifier = tf.keras.models.load_model("model/classifier_model.h5")
-    except:
-        classifier = None
+def load_yolo():
+    return YOLO("yolov8n.pt")
 
-    if yolo_available:
-        try:
-            yolo_model = YOLO("yolov8n.pt")
-        except:
-            yolo_model = None
+model = load_yolo()
+
+# ==========================
+# ANTARMUKA
+# ==========================
+st.title("🌸 Smart Image Insight Dashboard")
+st.markdown("💚 *Deteksi objek dan lihat insight statistiknya secara otomatis!*")
+
+mode = st.sidebar.radio("Pilih Sumber Gambar:", ["📁 Upload Gambar", "📸 Kamera Langsung"])
+
+# Input Gambar
+if mode == "📁 Upload Gambar":
+    uploaded = st.file_uploader("Unggah Gambar di sini:", type=["jpg", "jpeg", "png"])
+    if uploaded:
+        img = Image.open(uploaded).convert("RGB")
     else:
-        yolo_model = None
-
-    return classifier, yolo_model
-
-classifier, yolo_model = load_models()
-
-# ==========================
-# ANTARMUKA UTAMA
-# ==========================
-st.title("🌸 Image Detection & Classification App")
-
-mode = st.sidebar.selectbox("Pilih Mode:", ["Klasifikasi Gambar", "Deteksi Objek (YOLOv8)"])
-uploaded_file = st.file_uploader("📸 Unggah Gambar", type=["jpg", "jpeg", "png"])
-
-if uploaded_file:
-    img = Image.open(uploaded_file).convert("RGB")
-    st.image(img, caption="📷 Gambar yang Diupload", use_container_width=True)
-
-    if mode == "Klasifikasi Gambar":
-        if classifier:
-            with st.spinner("🤖 Sedang melakukan klasifikasi..."):
-                img_resized = img.resize((224, 224))
-                img_array = image.img_to_array(img_resized)
-                img_array = np.expand_dims(img_array, axis=0) / 255.0
-                prediction = classifier.predict(img_array)
-                class_index = np.argmax(prediction)
-                probability = np.max(prediction)
-
-            st.markdown(f"""
-                <div class="result-card">
-                    <h2>💚 Hasil Klasifikasi</h2>
-                    <h3>Kelas: {class_index}</h3>
-                    <p><b>Probabilitas:</b> {probability:.2f}</p>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ Model klasifikasi belum ditemukan. Silakan unggah model terlebih dahulu.")
-
-    elif mode == "Deteksi Objek (YOLOv8)":
-        if yolo_available and yolo_model:
-            with st.spinner("🔍 Sedang mendeteksi objek..."):
-                results = yolo_model(img)
-                result_image = results[0].plot()  # hasil gambar deteksi
-                st.image(result_image, caption="🟢 Hasil Deteksi YOLOv8", use_container_width=True)
-        elif not yolo_available:
-            st.error("❌ YOLOv8 belum terinstal. Jalankan: pip install ultralytics")
-        else:
-            st.warning("⚠️ Model YOLOv8 tidak dapat dimuat.")
+        img = None
 else:
-    st.info("📂 Silakan unggah gambar terlebih dahulu.")
+    img = st.camera_input("Ambil Gambar dari Kamera")
+
+# ==========================
+# PROSES DETEKSI
+# ==========================
+if img:
+    img_pil = Image.open(img).convert("RGB")
+    st.image(img_pil, caption="📷 Gambar Asli", use_container_width=True)
+
+    with st.spinner("🔍 Mendeteksi objek..."):
+        results = model(img_pil)
+        result_image = results[0].plot()
+        boxes = results[0].boxes
+        names = results[0].names
+        labels = [names[int(cls)] for cls in boxes.cls]
+
+    # ==========================
+    # TAMPILAN 3 KOLOM
+    # ==========================
+    col1, col2, col3 = st.columns([1.5, 1, 1])
+
+    # Kolom 1: Hasil Deteksi
+    with col1:
+        st.image(result_image, caption="🟢 Hasil Deteksi YOLOv8", use_container_width=True)
+
+    # Kolom 2: Grafik Jumlah Objek
+    with col2:
+        if labels:
+            label_series = pd.Series(labels).value_counts()
+            fig, ax = plt.subplots()
+            label_series.plot(kind="barh", ax=ax)
+            ax.set_xlabel("Jumlah Objek")
+            ax.set_ylabel("Kategori")
+            ax.set_title("📊 Distribusi Objek Terdeteksi")
+            st.pyplot(fig)
+        else:
+            st.info("Tidak ada objek terdeteksi.")
+
+    # Kolom 3: Insight Otomatis
+    with col3:
+        st.markdown('<div class="result-box">', unsafe_allow_html=True)
+        st.subheader("💡 Insight Otomatis")
+
+        if labels:
+            df_counts = pd.Series(labels).value_counts()
+            most_common = df_counts.index[0]
+            count = df_counts.iloc[0]
+            st.write(f"🌟 Objek paling sering muncul: **{most_common}** sebanyak **{count} kali**.")
+            st.write(f"🔎 Total objek terdeteksi: **{len(labels)}**.")
+            if len(df_counts) > 1:
+                st.write(f"Objek kedua terbanyak: **{df_counts.index[1]}**.")
+            else:
+                st.write("Hanya satu jenis objek yang terdeteksi.")
+        else:
+            st.write("Tidak ditemukan objek untuk dianalisis.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ==========================
+    # OPSIONAL: SIMPAN HASIL KE CSV
+    # ==========================
+    if labels:
+        df = pd.DataFrame(labels, columns=["Object"])
+        csv_path = "deteksi_log.csv"
+        df.to_csv(csv_path, mode='a', header=not os.path.exists(csv_path), index=False)
+        st.success("📁 Hasil deteksi telah disimpan ke `deteksi_log.csv`.")
+else:
+    st.info("Silakan unggah atau ambil gambar terlebih dahulu.")
