@@ -7,22 +7,22 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from PIL import Image
 
-# Aman: import YOLO hanya setelah cv2 pasti tersedia
+# Import YOLO dan OpenCV dengan penanganan error
 try:
     from ultralytics import YOLO
     import cv2
-except ImportError as e:
-    st.error("❌ Library pendukung YOLO (ultralytics/cv2) gagal dimuat.")
+except Exception as e:
+    st.error("❌ Library YOLO/OpenCV tidak bisa dimuat. Pastikan packages.txt sudah berisi libgl1 dan libglib2.0-0.")
     st.error(f"Detail error: {e}")
     st.stop()
 
 # ==========================
-# KONFIGURASI DASHBOARD
+# KONFIGURASI DASAR STREAMLIT
 # ==========================
 st.set_page_config(page_title="Image Detection & Classification", page_icon="🧠", layout="centered")
 
 # ==========================
-# CSS WARNA BIRU LEMBUT
+# CSS TEMA BIRU LEMBUT
 # ==========================
 page_style = """
 <style>
@@ -56,7 +56,7 @@ h1, h2, h3, p, label {
 st.markdown(page_style, unsafe_allow_html=True)
 
 # ==========================
-# LOAD MODEL (DICACHE)
+# LOAD MODEL (CACHE)
 # ==========================
 @st.cache_resource
 def load_models():
@@ -74,22 +74,25 @@ def load_models():
 
     return yolo_model, classifier
 
+
 yolo_model, classifier = load_models()
 
 # ==========================
-# UI DASHBOARD
+# ANTARMUKA UTAMA
 # ==========================
 st.title("🧠 Image Detection & Classification App")
 
-menu = st.sidebar.selectbox("Pilih Mode:", ["Deteksi Objek (YOLO)", "Klasifikasi Gambar"])
+menu = st.sidebar.selectbox("Pilih Mode:", ["Deteksi Objek (YOLOv8)", "Klasifikasi Gambar"])
 uploaded_file = st.file_uploader("📸 Unggah Gambar", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     img = Image.open(uploaded_file).convert("RGB")
     st.image(img, caption="Gambar yang Diupload", use_container_width=True)
 
-    # MODE 1: YOLO DETECTION
-    if menu == "Deteksi Objek (YOLO)":
+    # ==========================
+    # MODE 1: YOLO DETEKSI
+    # ==========================
+    if menu == "Deteksi Objek (YOLOv8)":
         if yolo_model is not None:
             with st.spinner("🔍 Sedang mendeteksi objek..."):
                 results = yolo_model(img)
@@ -98,7 +101,9 @@ if uploaded_file is not None:
         else:
             st.warning("Model YOLO belum dimuat.")
 
-    # MODE 2: IMAGE CLASSIFICATION
+    # ==========================
+    # MODE 2: KLASIFIKASI GAMBAR
+    # ==========================
     elif menu == "Klasifikasi Gambar":
         if classifier is not None:
             with st.spinner("🤖 Sedang melakukan klasifikasi..."):
