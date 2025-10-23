@@ -1,50 +1,40 @@
+# ==========================
+# IMPORT LIBRARY
+# ==========================
 import streamlit as st
-from ultralytics import YOLO
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
-import numpy as np
+from ultralytics import YOLO
 from PIL import Image
-import cv2
+import cv2  # pastikan opencv-python-headless terinstal
 
 # ==========================
-# KONFIGURASI DASHBOARD (WARNA BIRU SOFT)
+# KONFIGURASI DASHBOARD
 # ==========================
 st.set_page_config(page_title="Image Detection & Classification", page_icon="🧠", layout="centered")
 
-# CSS dengan warna biru lembut
+# ==========================
+# CSS WARNA BIRU LEMBUT
+# ==========================
 page_style = """
 <style>
-/* ======== LATAR BELAKANG BIRU LEMBUT ======== */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #66B2FF 0%, #0055CC 100%);
     color: white;
 }
-
-/* ======== SIDEBAR ======== */
 [data-testid="stSidebar"] {
-    background-color: #468CE8 !important; /* biru lembut sidebar */
+    background-color: #468CE8 !important;
 }
 [data-testid="stSidebar"] * {
     color: white !important;
 }
-
-/* ======== PERBAIKAN INTERAKSI ======== */
-div[data-baseweb="select"],
-.stFileUploader,
-.stButton {
-    position: relative !important;
-    z-index: auto !important;
-}
-
-/* ======== HEADER DAN TEKS ======== */
 [data-testid="stHeader"] {
     background: rgba(0,0,0,0);
 }
 h1, h2, h3, p, label {
     color: white !important;
 }
-
-/* ======== KOTAK HASIL ======== */
 .result-card {
     background-color: white;
     color: #004AAD;
@@ -59,51 +49,45 @@ h1, h2, h3, p, label {
 st.markdown(page_style, unsafe_allow_html=True)
 
 # ==========================
-# LOAD MODEL
+# LOAD MODEL (DICACHE)
 # ==========================
 @st.cache_resource
 def load_models():
-    yolo_model = YOLO("model/best.pt")  # Model deteksi objek
-    classifier = tf.keras.models.load_model("model/classifier_model.h5")  # Model klasifikasi
+    try:
+        yolo_model = YOLO("model/best.pt")  # Model YOLO
+    except Exception as e:
+        st.error(f"Gagal memuat model YOLO: {e}")
+        yolo_model = None
+
+    try:
+        classifier = tf.keras.models.load_model("model/classifier_model.h5")  # Model Klasifikasi
+    except Exception as e:
+        st.error(f"Gagal memuat model klasifikasi: {e}")
+        classifier = None
+
     return yolo_model, classifier
 
 yolo_model, classifier = load_models()
 
 # ==========================
-# UI
+# UI DASHBOARD
 # ==========================
-st.title("🧠 Image Classification & Object Detection App")
+st.title("🧠 Image Detection & Classification App")
 
 menu = st.sidebar.selectbox("Pilih Mode:", ["Deteksi Objek (YOLO)", "Klasifikasi Gambar"])
 
 uploaded_file = st.file_uploader("📸 Unggah Gambar", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    img = Image.open(uploaded_file)
+    img = Image.open(uploaded_file).convert("RGB")
     st.image(img, caption="Gambar yang Diupload", use_container_width=True)
 
+    # ==========================
+    # MODE DETEKSI OBJEK
+    # ==========================
     if menu == "Deteksi Objek (YOLO)":
-        results = yolo_model(img)
-        result_img = results[0].plot()
-        st.image(result_img, caption="📦 Hasil Deteksi", use_container_width=True)
-
-    elif menu == "Klasifikasi Gambar":
-        img_resized = img.resize((224, 224))
-        img_array = image.img_to_array(img_resized)
-        img_array = np.expand_dims(img_array, axis=0)
-        img_array = img_array / 255.0
-
-        prediction = classifier.predict(img_array)
-        class_index = np.argmax(prediction)
-        probability = np.max(prediction)
-
-        st.markdown(
-            f"""
-            <div class="result-card">
-                <h2>🔹 Hasil Prediksi</h2>
-                <h3>Kelas: {class_index}</h3>
-                <p><b>Probabilitas:</b> {probability:.2f}</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        if yolo_model is not None:
+            with st.spinner("🔍 Sedang mendeteksi objek..."):
+                results = yolo_model(img)
+                result_img = results[0].plot()
+                st.image(result_img, caption="📦 Hasil Deteksi", use_container_width=True_
