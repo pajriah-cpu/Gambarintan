@@ -1,152 +1,123 @@
-# ==========================
-# IMPORT LIBRARY
-# ==========================
 import streamlit as st
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.preprocessing import image
-from PIL import Image
-import os
-import importlib.util
+from PIL import Image, ImageDraw, ImageEnhance
+import random
+import pandas as pd
 
-# ==========================
-# CEK KETERSEDIAAN YOLO DAN OPENCV
-# ==========================
-yolo_available = importlib.util.find_spec("ultralytics") is not None
-cv2_available = importlib.util.find_spec("cv2") is not None
+# 🎨 Setup halaman
+st.set_page_config(page_title="🌿 Smart Leaf Classifier", layout="wide")
 
-if yolo_available and cv2_available:
-    from ultralytics import YOLO
-else:
-    YOLO = None
-
-# ==========================
-# KONFIGURASI DASAR
-# ==========================
-st.set_page_config(page_title="🌸 Smart Image Insight Dashboard", layout="centered")
-
-# ==========================
-# TEMA WARNA FEMININ HIJAU PASTEL
-# ==========================
 st.markdown("""
-<style>
-[data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #D0F0C0 0%, #B4E3B1 100%);
-    color: #2E4031;
-    font-family: 'Poppins', sans-serif;
-}
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #B4E3B1 0%, #D7EAD3 100%) !important;
-}
-[data-testid="stSidebar"] * {
-    color: #2E4031 !important;
-}
-h1, h2, h3, p, label {
-    color: #2E4031 !important;
-}
-.result-card {
-    background-color: white;
-    color: #2E4031;
-    padding: 25px;
-    border-radius: 15px;
-    text-align: center;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-    margin-top: 25px;
-}
-/* Tombol Upload Cantik */
-[data-testid="stFileUploader"] div[role="button"] {
-    background-color: #ffffff !important;
-    color: #3C6E47 !important;
-    font-weight: 600;
-    border-radius: 10px;
-    border: 2px solid #3C6E47;
-    transition: 0.3s;
-}
-[data-testid="stFileUploader"] div[role="button"]:hover {
-    background-color: #3C6E47 !important;
-    color: white !important;
-}
-</style>
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(to right, #e8f5e9, #c8e6c9);
+        color: #2e4031;
+        font-family: 'Poppins', sans-serif;
+    }
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #b4e3b1 0%, #d7ead3 100%) !important;
+        color: #2e4031 !important;
+    }
+    h1, h2, h3, p, label {
+        color: #2e4031 !important;
+    }
+    .result-card {
+        background-color: white;
+        color: #2e4031;
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        margin-top: 25px;
+    }
+    [data-testid="stFileUploader"] div[role="button"] {
+        background-color: #ffffff !important;
+        color: #3c6e47 !important;
+        font-weight: 600;
+        border-radius: 10px;
+        border: 2px solid #3c6e47;
+        transition: 0.3s;
+    }
+    [data-testid="stFileUploader"] div[role="button"]:hover {
+        background-color: #3c6e47 !important;
+        color: white !important;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
-# ==========================
-# JUDUL APLIKASI
-# ==========================
-st.markdown("""
-<div style='text-align:center;'>
-    <h1 style='color:#2E4031;'>🌷 Smart Image Insight Dashboard</h1>
-    <p style='font-style:italic;'>Deteksi objek & klasifikasi gambar dengan tampilan elegan 💚</p>
-</div>
-""", unsafe_allow_html=True)
+# =============================
+# 🏷️ Judul Utama
+# =============================
+st.title("🌿 Smart Leaf Classifier & Insight Dashboard")
+st.markdown("_💚 Klasifikasikan jenis daun dan lihat insight visualnya dengan gaya lembut dan elegan._")
 
-# ==========================
-# LOAD MODEL KLASIFIKASI
-# ==========================
-@st.cache_resource
-def load_models():
-    try:
-        classifier = tf.keras.models.load_model("model/classifier_model.h5")
-    except:
-        classifier = None
+# =============================
+# 🗂️ Sidebar Menu
+# =============================
+st.sidebar.header("🌸 Pilih Mode:")
+mode = st.sidebar.radio("Mode Operasi:", ["Klasifikasi Daun", "Deteksi Area Daun (Simulasi)"])
 
-    if yolo_available and cv2_available and YOLO is not None:
-        try:
-            yolo_model = YOLO("yolov8n.pt")
-        except:
-            yolo_model = None
-    else:
-        yolo_model = None
+uploaded_file = st.file_uploader("📸 Unggah Gambar Daun", type=["jpg", "jpeg", "png"])
 
-    return classifier, yolo_model
-
-classifier, yolo_model = load_models()
-
-# ==========================
-# ANTARMUKA UTAMA
-# ==========================
-st.sidebar.title("📁 Pilih Sumber Gambar:")
-mode = st.sidebar.selectbox("Pilih Mode:", ["Klasifikasi Gambar", "Deteksi Objek (YOLOv8)"])
-uploaded_file = st.file_uploader("📸 Unggah Gambar", type=["jpg", "jpeg", "png"])
-
-# ==========================
-# PROSES UTAMA
-# ==========================
+# =============================
+# 📷 Jika Gambar Diupload
+# =============================
 if uploaded_file:
-    img = Image.open(uploaded_file).convert("RGB")
-    st.image(img, caption="📷 Gambar yang Diupload", use_container_width=True)
+    image = Image.open(uploaded_file).convert("RGB")
 
-    if mode == "Klasifikasi Gambar":
-        if classifier:
-            with st.spinner("🤖 Sedang melakukan klasifikasi..."):
-                img_resized = img.resize((224, 224))
-                img_array = image.img_to_array(img_resized)
-                img_array = np.expand_dims(img_array, axis=0) / 255.0
-                prediction = classifier.predict(img_array)
-                class_index = np.argmax(prediction)
-                probability = np.max(prediction)
+    # perbaiki kontras biar daun terlihat lebih jelas
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(1.2)
 
-            st.markdown(f"""
-                <div class="result-card">
-                    <h2>💚 Hasil Klasifikasi</h2>
-                    <h3>Kelas: {class_index}</h3>
-                    <p><b>Probabilitas:</b> {probability:.2f}</p>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ Model klasifikasi belum ditemukan. Silakan unggah model terlebih dahulu.")
+    st.image(image, caption="🌿 Gambar Daun yang Diupload", use_container_width=True)
 
-    elif mode == "Deteksi Objek (YOLOv8)":
-        if yolo_available and cv2_available and YOLO is not None:
-            if yolo_model:
-                with st.spinner("🔍 Sedang mendeteksi objek..."):
-                    results = yolo_model(img)
-                    result_image = results[0].plot()
-                    st.image(result_image, caption="🟢 Hasil Deteksi YOLOv8", use_container_width=True)
-            else:
-                st.warning("⚠️ Model YOLOv8 tidak dapat dimuat.")
-        elif not yolo_available:
-            st.error("❌ YOLOv8 belum terinstal. Jalankan: pip install ultralytics")
-        elif not cv2_available:
-            st.error("❌ OpenCV belum tersedia. Jalankan: pip install opencv-python-headless")
+    # =======================================
+    # 🌿 MODE 1: KLASIFIKASI DAUN
+    # =======================================
+    if mode == "Klasifikasi Daun":
+        st.subheader("🧠 Hasil Klasifikasi (Simulasi AI)")
+
+        # contoh label daun
+        leaf_types = ["Daun Sehat", "Daun Layu", "Daun Sakit (Jamur)", "Daun Kering"]
+        predicted_label = random.choice(leaf_types)
+        confidence = round(random.uniform(80, 99.5), 2)
+
+        st.markdown(f"""
+            <div class="result-card">
+                <h2>🌱 Prediksi: {predicted_label}</h2>
+                <p><b>Tingkat Kepercayaan:</b> {confidence}%</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # buat tabel probabilitas
+        df = pd.DataFrame({
+            "Kategori Daun": leaf_types,
+            "Probabilitas (%)": [round(random.uniform(50, 100), 2) for _ in leaf_types]
+        }).sort_values("Probabilitas (%)", ascending=False)
+
+        st.subheader("📊 Probabilitas Klasifikasi Daun")
+        st.dataframe(df, use_container_width=True)
+        st.bar_chart(df.set_index("Kategori Daun"))
+
+    # =======================================
+    # 🌿 MODE 2: DETEKSI AREA DAUN
+    # =======================================
+    elif mode == "Deteksi Area Daun (Simulasi)":
+        st.subheader("🌿 Simulasi Area Daun Terdeteksi")
+
+        draw = ImageDraw.Draw(image)
+        img_w, img_h = image.size
+
+        for _ in range(random.randint(1, 4)):
+            x0 = random.randint(0, int(img_w * 0.6))
+            y0 = random.randint(0, int(img_h * 0.6))
+            x1 = x0 + random.randint(int(img_w * 0.2), int(img_w * 0.4))
+            y1 = y0 + random.randint(int(img_h * 0.2), int(img_h * 0.4))
+            color = random.choice(["#32CD32", "#66BB6A", "#81C784", "#A5D6A7"])
+            draw.rectangle([x0, y0, x1, y1], outline=color, width=6)
+            draw.text((x0 + 10, y0 - 25), "Daun", fill=color)
+
+        st.image(image, caption="🟢 Area Daun (Deteksi Simulasi)", use_container_width=True)
+
 else:
-    st.info("📂 Silakan unggah gambar terlebih dahulu.")
+    st.info("⬆️ Silakan unggah gambar daun terlebih dahulu untuk melihat hasil klasifikasi atau deteksi.")
