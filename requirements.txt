@@ -1,7 +1,7 @@
 streamlit
 ultralytics
 tensorflow
-pillow
+Pillow
 opencv-python
 numpy
 
