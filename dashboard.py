@@ -60,7 +60,7 @@ def load_models():
         yolo_model = None
 
     try:
-        classifier = tf.keras.models.load_model("model/classifier_model.h5")  # Model Klasifikasi
+        classifier = tf.keras.models.load_model("model/classifier_model.h5")  # Model klasifikasi
     except Exception as e:
         st.error(f"Gagal memuat model klasifikasi: {e}")
         classifier = None
@@ -83,11 +83,41 @@ if uploaded_file is not None:
     st.image(img, caption="Gambar yang Diupload", use_container_width=True)
 
     # ==========================
-    # MODE DETEKSI OBJEK
+    # MODE DETEKSI OBJEK (YOLO)
     # ==========================
     if menu == "Deteksi Objek (YOLO)":
         if yolo_model is not None:
             with st.spinner("🔍 Sedang mendeteksi objek..."):
                 results = yolo_model(img)
                 result_img = results[0].plot()
-                st.image(result_img, caption="📦 Hasil Deteksi", use_container_width=True_
+                st.image(result_img, caption="📦 Hasil Deteksi", use_container_width=True)
+        else:
+            st.warning("Model YOLO belum dimuat.")
+
+    # ==========================
+    # MODE KLASIFIKASI GAMBAR
+    # ==========================
+    elif menu == "Klasifikasi Gambar":
+        if classifier is not None:
+            with st.spinner("🤖 Sedang melakukan klasifikasi..."):
+                img_resized = img.resize((224, 224))
+                img_array = image.img_to_array(img_resized)
+                img_array = np.expand_dims(img_array, axis=0)
+                img_array = img_array / 255.0
+
+                prediction = classifier.predict(img_array)
+                class_index = np.argmax(prediction)
+                probability = np.max(prediction)
+
+            st.markdown(
+                f"""
+                <div class="result-card">
+                    <h2>🔹 Hasil Prediksi</h2>
+                    <h3>Kelas: {class_index}</h3>
+                    <p><b>Probabilitas:</b> {probability:.2f}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.warning("Model klasifikasi belum dimuat.")
