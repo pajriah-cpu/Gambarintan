@@ -7,18 +7,23 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from PIL import Image
 import os
+import importlib.util
 
-# Coba load YOLOv8
-try:
+# ==========================
+# CEK KETERSEDIAAN YOLO DAN OPENCV
+# ==========================
+yolo_available = importlib.util.find_spec("ultralytics") is not None
+cv2_available = importlib.util.find_spec("cv2") is not None
+
+if yolo_available and cv2_available:
     from ultralytics import YOLO
-    yolo_available = True
-except:
-    yolo_available = False
+else:
+    YOLO = None
 
 # ==========================
 # KONFIGURASI DASAR
 # ==========================
-st.set_page_config(page_title="🌸 Image Detection & Classification", layout="centered")
+st.set_page_config(page_title="🌸 Smart Image Insight Dashboard", layout="centered")
 
 # ==========================
 # TEMA WARNA FEMININ HIJAU PASTEL
@@ -65,7 +70,17 @@ h1, h2, h3, p, label {
 """, unsafe_allow_html=True)
 
 # ==========================
-# LOAD MODEL
+# JUDUL APLIKASI
+# ==========================
+st.markdown("""
+<div style='text-align:center;'>
+    <h1 style='color:#2E4031;'>🌷 Smart Image Insight Dashboard</h1>
+    <p style='font-style:italic;'>Deteksi objek & klasifikasi gambar dengan tampilan elegan 💚</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================
+# LOAD MODEL KLASIFIKASI
 # ==========================
 @st.cache_resource
 def load_models():
@@ -74,7 +89,7 @@ def load_models():
     except:
         classifier = None
 
-    if yolo_available:
+    if yolo_available and cv2_available and YOLO is not None:
         try:
             yolo_model = YOLO("yolov8n.pt")
         except:
@@ -89,11 +104,13 @@ classifier, yolo_model = load_models()
 # ==========================
 # ANTARMUKA UTAMA
 # ==========================
-st.title("🌸 Image Detection & Classification App")
-
+st.sidebar.title("📁 Pilih Sumber Gambar:")
 mode = st.sidebar.selectbox("Pilih Mode:", ["Klasifikasi Gambar", "Deteksi Objek (YOLOv8)"])
 uploaded_file = st.file_uploader("📸 Unggah Gambar", type=["jpg", "jpeg", "png"])
 
+# ==========================
+# PROSES UTAMA
+# ==========================
 if uploaded_file:
     img = Image.open(uploaded_file).convert("RGB")
     st.image(img, caption="📷 Gambar yang Diupload", use_container_width=True)
@@ -119,14 +136,17 @@ if uploaded_file:
             st.warning("⚠️ Model klasifikasi belum ditemukan. Silakan unggah model terlebih dahulu.")
 
     elif mode == "Deteksi Objek (YOLOv8)":
-        if yolo_available and yolo_model:
-            with st.spinner("🔍 Sedang mendeteksi objek..."):
-                results = yolo_model(img)
-                result_image = results[0].plot()  # hasil gambar deteksi
-                st.image(result_image, caption="🟢 Hasil Deteksi YOLOv8", use_container_width=True)
+        if yolo_available and cv2_available and YOLO is not None:
+            if yolo_model:
+                with st.spinner("🔍 Sedang mendeteksi objek..."):
+                    results = yolo_model(img)
+                    result_image = results[0].plot()
+                    st.image(result_image, caption="🟢 Hasil Deteksi YOLOv8", use_container_width=True)
+            else:
+                st.warning("⚠️ Model YOLOv8 tidak dapat dimuat.")
         elif not yolo_available:
             st.error("❌ YOLOv8 belum terinstal. Jalankan: pip install ultralytics")
-        else:
-            st.warning("⚠️ Model YOLOv8 tidak dapat dimuat.")
+        elif not cv2_available:
+            st.error("❌ OpenCV belum tersedia. Jalankan: pip install opencv-python-headless")
 else:
     st.info("📂 Silakan unggah gambar terlebih dahulu.")
