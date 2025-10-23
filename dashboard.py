@@ -1,14 +1,14 @@
 import streamlit as st
 from PIL import Image
-import cv2
 import numpy as np
+from ultralytics import YOLO
 
 # --- Style Background ---
 st.markdown(
     """
     <style>
     .stApp {
-        background-color: #E0F7FA;  /* Ganti warna sesuai selera */
+        background-color: #E0F7FA;
     }
     </style>
     """,
@@ -16,7 +16,6 @@ st.markdown(
 )
 
 # --- Sidebar ---
-st.sidebar.image("2ead9cef-2448-47d3-9aec-09654ac231e1.png", use_column_width=True)
 st.sidebar.header("Pilih Mode")
 mode = st.sidebar.radio("Mode:", ["Deteksi YOLOv8", "Klasifikasi"])
 
@@ -37,28 +36,27 @@ if uploaded_file:
     if mode == "Klasifikasi":
         st.subheader("Mode: Klasifikasi")
         st.info("🔹 Gambar akan diklasifikasikan secara otomatis.")
-        
-        # --- Simulasi output klasifikasi ---
+        # Panggil model klasifikasi kamu di sini
         st.image(image, caption="Hasil Klasifikasi", use_column_width=True)
-        st.write("✅ Kelas yang terdeteksi: **Daun Mangga**")  # contoh, sesuaikan dengan model
+        st.write("✅ Kelas yang terdeteksi: **Daun Mangga**")  # contoh
 
-    else:  # Mode Deteksi YOLOv8
+    else:
         st.subheader("Mode: Deteksi YOLOv8")
         st.info("🔹 Gambar akan dideteksi menggunakan YOLOv8.")
 
-        # --- Simulasi deteksi YOLOv8 dengan bounding box ---
-        image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        # --- Load model YOLOv8 (misal model custom kamu) ---
+        model = YOLO("yolov8n.pt")  # ganti path ke modelmu, misal "runs/train/exp/weights/best.pt"
 
-        # Contoh koordinat bounding box [x1, y1, x2, y2]
-        boxes = [[50, 50, 200, 200], [220, 80, 370, 230]]
-        labels = ["Daun Mangga", "Daun Jambu"]
-        colors = [(0, 255, 0), (0, 0, 255)]
+        # Convert PIL image ke numpy array
+        img_np = np.array(image)
 
-        for i, box in enumerate(boxes):
-            x1, y1, x2, y2 = box
-            cv2.rectangle(image_cv, (x1, y1), (x2, y2), colors[i], 2)
-            cv2.putText(image_cv, labels[i], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, colors[i], 2)
+        # Jalankan deteksi
+        results = model.predict(img_np)
 
-        image_result = Image.fromarray(cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB))
-        st.image(image_result, caption="Hasil Deteksi YOLOv8", use_column_width=True)
+        # Ambil hasil gambar dengan bounding box
+        result_img = results[0].plot()  # ini langsung menampilkan box + label
+        st.image(result_img, caption="Hasil Deteksi YOLOv8", use_column_width=True)
+
+        # Tampilkan label yang terdeteksi
+        labels = [model.names[int(cls)] for cls in results[0].boxes.cls]
         st.write(f"✅ Objek terdeteksi: {', '.join(labels)}")
