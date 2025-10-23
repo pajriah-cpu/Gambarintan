@@ -8,7 +8,111 @@ import random
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
+import osimport streamlit as st
+import numpy as np
+from PIL import Image
+import tensorflow as tf
+import tempfile
 import os
+
+# Coba import YOLOv8
+try:
+    from ultralytics import YOLO
+    import cv2
+    yolo_available = True
+except ImportError:
+    yolo_available = False
+    st.warning("⚠️ YOLOv8 belum aktif (cv2 atau ultralytics belum terinstal). Menjalankan mode demo.")
+
+# ------------------------------
+# Judul Dashboard
+# ------------------------------
+st.title("🌿 SmartVision: Deteksi & Klasifikasi Daun")
+
+# Pilihan Mode
+mode = st.radio("Pilih Mode Analisis:", ["Klasifikasi Daun (CNN)", "Deteksi Objek (YOLOv8)"])
+
+# Upload Gambar
+uploaded_file = st.file_uploader("Unggah gambar daun untuk dianalisis", type=["jpg", "png", "jpeg"])
+
+# ------------------------------
+# MODE: KLASIFIKASI DAUN (CNN)
+# ------------------------------
+if uploaded_file and mode == "Klasifikasi Daun (CNN)":
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Gambar yang diunggah", use_container_width=True)
+
+    # Muat model klasifikasi
+    try:
+        model = tf.keras.models.load_model("model_daun.h5")
+    except Exception as e:
+        st.error("❌ Gagal memuat model CNN. Pastikan file 'model_daun.h5' ada di folder.")
+        st.stop()
+
+    # Preprocessing
+    img_resized = image.resize((224, 224))
+    img_array = np.array(img_resized) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    # Prediksi
+    prediction = model.predict(img_array)
+    class_names = ["Daun Sehat", "Daun Terinfeksi", "Daun Kering", "Daun Layu"]
+    predicted_class = class_names[np.argmax(prediction)]
+    confidence = np.max(prediction)
+
+    st.success(f"🌱 **Kelas:** {predicted_class}")
+    st.info(f"📊 Tingkat Keyakinan: {confidence:.2f}")
+
+# ------------------------------
+# MODE: DETEKSI OBJEK (YOLOv8)
+# ------------------------------
+elif uploaded_file and mode == "Deteksi Objek (YOLOv8)":
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Gambar yang diunggah", use_container_width=True)
+
+    if not yolo_available:
+        st.warning("⚠️ YOLOv8 belum aktif. Tampilkan mode demo.")
+        st.image(image, caption="Mode demo: tanpa deteksi.")
+    else:
+        # Simpan sementara file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+        image.save(temp_file.name)
+
+        # Muat model YOLOv8
+        try:
+            model_yolo = YOLO("yolov8n.pt")  # Ganti dengan model daun-mu jika sudah ada
+        except Exception as e:
+            st.error("❌ Gagal memuat model YOLOv8. Pastikan file 'yolov8n.pt' atau model daun tersedia.")
+            st.stop()
+
+        # Jalankan deteksi
+        results = model_yolo(temp_file.name)
+
+        # Simpan hasil ke file sementara
+        result_img_path = os.path.join(tempfile.gettempdir(), "result_yolo.jpg")
+        for r in results:
+            res_img = r.plot()
+            cv2.imwrite(result_img_path, res_img[:, :, ::-1])
+
+        st.image(result_img_path, caption="📸 Hasil Deteksi YOLOv8", use_container_width=True)
+
+        # Tampilkan hasil detail
+        for r in results:
+            boxes = r.boxes
+            if len(boxes) == 0:
+                st.warning("Tidak ada objek terdeteksi.")
+            else:
+                for box in boxes:
+                    cls = int(box.cls[0])
+                    conf = float(box.conf[0])
+                    st.write(f"🟩 **Objek:** {model_yolo.names[cls]} | 🔢 Confidence: {conf:.2f}")
+
+        # Bersihkan file sementara
+        os.remove(temp_file.name)
+
+else:
+    st.info("📥 Silakan unggah gambar untuk mulai analisis.")
+
 
 # ======================================================
 # 🎨 KONFIGURASI DASAR & WARNA FEMININ
