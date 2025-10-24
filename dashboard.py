@@ -1,50 +1,95 @@
 import streamlit as st
-from ultralytics import YOLO
-import tensorflow as tf
-from tensorflow.keras.preprocessing import image
-import numpy as np
 from PIL import Image
-import cv2
+import numpy as np
+import os
 
-# ==========================
-# Load Models
-# ==========================
-@st.cache_resource
-def load_models():
-    yolo_model = YOLO("model/best.pt")  # Model deteksi objek
-    classifier = tf.keras.models.load_model("model/classifier_model.h5")  # Model klasifikasi
-    return yolo_model, classifier
+# Cek import YOLO dan cv2
+try:
+    from ultralytics import YOLO
+    import cv2
+    import tensorflow as tf
+except ImportError as e:
+    st.error(f"Module error: {e}")
 
-yolo_model, classifier = load_models()
+# --- Style Background ---
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #E0F7FA;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# ==========================
-# UI
-# ==========================
-st.title("🧠 Image Classification & Object Detection App")
+# --- Sidebar ---
+st.sidebar.header("Pilih Mode")
+mode = st.sidebar.radio("Mode:", ["Deteksi YOLOv8", "Klasifikasi"])
 
-menu = st.sidebar.selectbox("Pilih Mode:", ["Deteksi Objek (YOLO)", "Klasifikasi Gambar"])
+st.sidebar.header("Sumber Gambar")
+source = st.sidebar.radio("Sumber Gambar:", ["Upload Gambar", "Kamera Langsung"])
 
-uploaded_file = st.file_uploader("Unggah Gambar", type=["jpg", "jpeg", "png"])
+# --- Judul Dashboard ---
+st.title("SmartVision Dashboard")
+st.write("💚 Deteksi dan klasifikasi daun secara otomatis menggunakan YOLOv8 atau mode klasifikasi.")
 
-if uploaded_file is not None:
-    img = Image.open(uploaded_file)
-    st.image(img, caption="Gambar yang Diupload", use_container_width=True)
+# --- Penjelasan Tentang Mode ---
+with st.expander("ℹ️ Penjelasan Tentang Mode"):
+    st.markdown("""
+    **🔍 Deteksi YOLOv8**
+    - Digunakan untuk *mendeteksi objek* (misalnya daun, hama, atau penyakit) dalam gambar.  
+    - YOLOv8 bekerja dengan menandai posisi objek menggunakan *bounding box* dan label kelas.  
+    - Cocok digunakan untuk mengetahui **berapa banyak dan di mana objek berada** dalam satu gambar.
 
-    if menu == "Deteksi Objek (YOLO)":
-        # Deteksi objek
-        results = yolo_model(img)
-        result_img = results[0].plot()  # hasil deteksi (gambar dengan box)
-        st.image(result_img, caption="Hasil Deteksi", use_container_width=True)
+    **🧠 Klasifikasi**
+    - Digunakan untuk *mengklasifikasikan satu gambar ke dalam kategori tertentu*.  
+    - Misalnya untuk mengenali **jenis daun** atau **tingkat kesehatan tanaman**.  
+    - Cocok ketika gambar hanya berisi satu objek utama dan kamu ingin tahu **jenis atau kondisinya**.
+    """)
 
-    elif menu == "Klasifikasi Gambar":
-        # Preprocessing
-        img_resized = img.resize((224, 224))  # sesuaikan ukuran dengan model kamu
-        img_array = image.img_to_array(img_resized)
-        img_array = np.expand_dims(img_array, axis=0)
-        img_array = img_array / 255.0
+# --- Upload Gambar ---
+uploaded_file = st.file_uploader("Unggah Gambar di sini", type=["jpg", "jpeg", "png"])
 
-        # Prediksi
-        prediction = classifier.predict(img_array)
-        class_index = np.argmax(prediction)
-        st.write("### Hasil Prediksi:", class_index)
-        st.write("Probabilitas:", np.max(prediction))
+# --- Path model ---
+yolo_model_path = r"Downloads/Demonstrasi/Demonstrasi/model/Intan Pajriah_Laporan 4.pt"
+klasifikasi_model_path = r"Downloads/Demonstrasi/Demonstrasi/model/intan_pajriah_laporan2.h5"
+
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Gambar Asli", use_column_width=True)
+
+    if mode == "Klasifikasi":
+        st.subheader("Mode: Klasifikasi")
+        st.info("🔹 Gambar akan diklasifikasikan menggunakan model kamu sendiri.")
+        try:
+            model_klasifikasi = tf.keras.models.load_model(klasifikasi_model_path)
+            img_resized = image.resize((224, 224))  # ubah sesuai input model kamu
+            img_array = np.expand_dims(np.array(img_resized) / 255.0, axis=0)
+            pred = model_klasifikasi.predict(img_array)
+            kelas = np.argmax(pred, axis=1)[0]
+
+            # ganti label sesuai urutan kelas model kamu
+            label_kelas = ["Daun Mangga", "Daun Jambu", "Daun Jeruk"]
+            st.image(image, caption="Hasil Klasifikasi", use_column_width=True)
+            st.success(f"✅ Kelas yang terdeteksi: **{label_kelas[kelas]}**")
+
+        except Exception as e:
+            st.error(f"Gagal menjalankan model klasifikasi: {e}")
+
+    else:
+        st.subheader("Mode: Deteksi YOLOv8")
+        st.info("🔹 Gambar akan dideteksi menggunakan model YOLOv8 kamu sendiri.")
+        try:
+            model_yolo = YOLO(yolo_model_path)
+            img_np = np.array(image)
+            results = model_yolo.predict(img_np)
+            results[0].save("temp_result.jpg")
+            result_img = Image.open("temp_result.jpg")
+            st.image(result_img, caption="Hasil Deteksi YOLOv8", use_column_width=True)
+
+            labels = [model_yolo.names[int(cls)] for cls in results[0].boxes.cls]
+            st.success(f"✅ Objek terdeteksi: {', '.join(labels)}")
+
+        except Exception as e:
+            st.error(f"Gagal menjalankan YOLOv8: {e}")
