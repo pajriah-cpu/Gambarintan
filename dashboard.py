@@ -53,7 +53,7 @@ uploaded_file = st.file_uploader("Unggah Gambar di sini", type=["jpg", "jpeg", "
 
 # --- Path model ---
 yolo_model_path = r"model/Intan Pajriah_Laporan 4.pt"
-klasifikasi_model_path = r"model/Intan Pajriah_Laporan 4.h5"
+klasifikasi_model_path = r"model/intan_pajriah_laporan2.h5"
 
 if uploaded_file:
     image = Image.open(uploaded_file)
