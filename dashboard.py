@@ -70,7 +70,7 @@ if uploaded_file:
             kelas = np.argmax(pred, axis=1)[0]
 
             # ganti label sesuai urutan kelas model kamu
-            label_kelas = ["Daun Mangga", "Daun Jambu", "Daun Jeruk"]
+            label_kelas = ["Downy mildew", "Fresh Leaf ", "Gray mold", "Leaf Scars"]
             st.image(image, caption="Hasil Klasifikasi", use_column_width=True)
             st.success(f"✅ Kelas yang terdeteksi: **{label_kelas[kelas]}**")
 
